@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String? @unique
+  stripeId String  @unique
+
+  createdAt DateTime @default(now())
+
+  product Product?
+
+  @@map("users")
+}
+
+model Product {
+  id       String @id @default(cuid())
+  totalSum Int    @default(9700)
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  licenses License[]
+
+  @@map("products")
+}
+
+model License {
+  id    String @id @default(cuid())
+  name  String @unique
+  /// no. of licenses generated
+  total Int    @default(1)
+  /// no. of licenses used
+  used  Int    @default(0)
+  /// stored in cents
+
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+
+  createdAt DateTime @default(now())
+
+  @@map("licenses")
+}
