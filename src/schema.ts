@@ -1,6 +1,13 @@
-import { makeSchema, objectType, asNexusMethod } from 'nexus'
+import {
+  makeSchema,
+  objectType,
+  asNexusMethod,
+  nonNull,
+  stringArg,
+  intArg,
+} from 'nexus'
 import { DateTimeResolver } from 'graphql-scalars'
-import { Context } from './context'
+import { prisma } from './context'
 import { db } from './db'
 
 export const DateTime = asNexusMethod(DateTimeResolver, 'date')
@@ -9,7 +16,7 @@ const License = objectType({
   name: 'License',
   definition(t) {
     t.nonNull.string('id')
-    t.nonNull.string('email')
+    t.string('email')
     t.nonNull.string('name')
     t.nonNull.int('total')
     t.nonNull.int('used')
@@ -23,7 +30,6 @@ const Query = objectType({
     t.list.field('licenses', {
       type: 'License',
       resolve: async (_, __, ctx) => {
-        if (!ctx.admin.isLoggedIn) return null
         const licenses = await db.getLicenses()
 
         if (licenses) return licenses
@@ -35,7 +41,24 @@ const Query = objectType({
 
 const Mutation = objectType({
   name: 'Mutation',
-  definition(t) {},
+  definition(t) {
+    t.nullable.field('createLicense', {
+      type: 'License',
+      args: {
+        name: nonNull(stringArg()),
+        total: nonNull(intArg()),
+      },
+      resolve: async (_, { name, total }, ctx) => {
+        const licenseExists = await prisma.license.findMany({
+          where: { name },
+        })
+
+        if (licenseExists.length) return null
+
+        return await db.createLicense({ name, total })
+      },
+    })
+  },
 })
 
 export const schema = makeSchema({

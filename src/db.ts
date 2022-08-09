@@ -1,10 +1,10 @@
-import { Prisma, License, User } from '@prisma/client'
+import { Prisma, License, User, Product } from '@prisma/client'
 
 import { prisma } from './context'
 
-export const getLicenses = async (): Promise<
-  Array<License & Pick<User, 'email'>> | null | undefined
-> => {
+const getLicenses = async (): Promise<Array<
+  License & Pick<User, 'email'>
+> | null> => {
   const userSelect = Prisma.validator<Prisma.ProductSelect>()({
     user: {
       select: {
@@ -25,21 +25,34 @@ export const getLicenses = async (): Promise<
     },
     include: productSelect,
   })
+  const result = licenses.map((currentLicense) => {
+    const email = currentLicense.product?.user.email
 
-  const result = licenses.map((license) => {
-    const email = license.product?.user.email
-
-    if (email) {
-      return {
-        ...license,
-        email,
-      }
+    return {
+      ...currentLicense,
+      email: email || null,
     }
   })
 
   return result
 }
 
+const createLicense = async ({
+  name,
+  total,
+}: {
+  name: string
+  total: number
+}): Promise<License> => {
+  return await prisma.license.create({
+    data: {
+      name,
+      total,
+    },
+  })
+}
+
 export const db = {
   getLicenses,
+  createLicense,
 }
